@@ -13,6 +13,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import pkgutil
+import typing
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
@@ -83,10 +84,14 @@ def to_mcp_tool_schema(entry: BuilderEntry) -> dict[str, Any]:
     properties: dict[str, Any] = {}
     required: list[str] = []
 
+    # get_type_hints() で `from __future__ import annotations` による
+    # 文字列アノテーションを実際の型オブジェクトに解決する
+    hints = typing.get_type_hints(entry.func)
+
     params = list(entry.signature.parameters.values())
     # 第一引数は MinecraftClient なのでスキップ
     for param in params[1:]:
-        annotation = param.annotation
+        annotation = hints.get(param.name, str)
         json_type = _PY_TO_JSON_TYPE.get(annotation, "string")
         properties[param.name] = {"type": json_type}
         if param.default is inspect.Parameter.empty:

@@ -10,6 +10,7 @@ import asyncio
 import inspect
 import logging
 import shlex
+import typing
 
 from mc_bedrock_mcp.mc import MinecraftClient, MinecraftServer
 from mc_bedrock_mcp.registry import (
@@ -36,10 +37,13 @@ def _coerce(value: str, annotation: type) -> object:
 
 def _parse_args(entry: BuilderEntry, tokens: list[str]) -> dict[str, object]:
     """位置引数を builder のキーワード引数に変換する。"""
+    # get_type_hints() で `from __future__ import annotations` による
+    # 文字列アノテーションを実際の型オブジェクトに解決する
+    hints = typing.get_type_hints(entry.func)
     params = list(entry.signature.parameters.values())[1:]  # skip MinecraftClient
     kwargs: dict[str, object] = {}
     for param, token in zip(params, tokens, strict=False):
-        annotation = param.annotation if param.annotation is not inspect.Parameter.empty else str
+        annotation = hints.get(param.name, str)
         kwargs[param.name] = _coerce(token, annotation)
     return kwargs
 
